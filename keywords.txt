@@ -1,0 +1,6 @@
+Quickping   KEYWORD1
+QuickPingMessage KEYWORD1
+QuickPingConfig KEYWORD1
+loop    KEYWORD2
+begin   KEYWORD2
+sendPing    KEYWORD2
