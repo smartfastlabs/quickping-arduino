@@ -1,6 +1,5 @@
 #include "quickping.h"
 #include "quickping_wifi.h"
-#include <WiFiNina.h>
 
 const int BUFFER_SIZE = 128;
 const int GET = 0;

@@ -1,6 +1,9 @@
 #ifndef QUICKPING_H
 
 #include "Arduino.h"
+
+// TODO THERE MUST BE A WAY TO SOLVE THIS!!!!
+// #include <WiFiS3.h>
 #include <WiFiNINA.h>
 
 const int PACKET_SIZE = 1024;

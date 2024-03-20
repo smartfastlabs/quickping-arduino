@@ -1,4 +1,3 @@
-#include <WiFiNINA.h>
 #include <quickping.h>
 
 const int BUTTON_PIN = 2;
