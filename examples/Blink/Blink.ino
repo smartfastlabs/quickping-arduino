@@ -28,8 +28,8 @@ void setup()
         ;
     }
 
-    config.ssid = "Moose Wifi";
-    config.wifiPassword = "straderishere";
+    config.ssid = "<WIFI_SSID>";
+    config.wifiPassword = "<WIFI_PASSWORD>";
     config.uuid = "6895285d-02c0-4f96-8702-46520d76cee4";
     config.localPort = 2525;
     config.serverIP = IPAddress(192, 168, 86, 48);
