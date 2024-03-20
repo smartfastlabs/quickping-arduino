@@ -1,5 +1,4 @@
 #include "quickping.h"
-#include "quickping_wifi.h"
 
 const int BUFFER_SIZE = 128;
 const int GET = 0;
@@ -7,6 +6,67 @@ const int POST = 1;
 const int OPTION = 2;
 
 WiFiUDP Udp;
+
+void QuickPing::printWiFiStatus()
+{
+  Serial.print("[QP] SSID: ");
+  Serial.println(WiFi.SSID());
+
+  IPAddress ip = WiFi.localIP();
+  Serial.print("[QP] IP Address: ");
+  Serial.println(ip);
+  byte bssid[6];
+  WiFi.BSSID(bssid);
+
+  long rssi = WiFi.RSSI();
+  Serial.print("[QP] Signal strength (RSSI):");
+  Serial.print(rssi);
+  Serial.println(" dBm");
+}
+
+int QuickPing::connectToWiFi(char *ssid, char *password)
+{
+  int connectionAttempts = 2;
+  int wifiStatus = WL_IDLE_STATUS;
+  while (wifiStatus != WL_CONNECTED)
+  {
+    if (connectionAttempts-- < 0)
+    {
+      return NULL;
+    }
+    Serial.print("[QP] Attempting to connect to SSID: ");
+    Serial.println(ssid);
+    wifiStatus = WiFi.begin(ssid, password);
+
+    delay(2000);
+  }
+
+  return wifiStatus;
+}
+
+bool QuickPing::checkWiFi()
+{
+  if (WiFi.status() == WL_NO_MODULE)
+  {
+    Serial.println("[QP] Communication with WiFi module failed!");
+    while (true)
+      ;
+  }
+
+  if (WiFi.firmwareVersion() < WIFI_FIRMWARE_LATEST_VERSION)
+  {
+    Serial.println("[QP] Please upgrade the firmware");
+  }
+}
+
+char *QuickPing::getMACAddress()
+{
+  byte mac[6];
+  WiFi.macAddress(mac);
+  static char macAddress[18];
+  sprintf(macAddress, "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  return macAddress;
+}
 
 QuickPingMessage *QuickPing::readMessage()
 {
@@ -104,19 +164,6 @@ unsigned long QuickPing::sendPing(QuickPingState *state)
   return sendMessage(&message);
 }
 
-QuickPingState QuickPing::getConfigAsBuffer()
-{
-  QuickPingState state;
-  state.clear();
-  state.addValue("ssid", _config.ssid);
-  state.addValue("password", _config.wifiPassword);
-  state.addValue("server_ip", _config.serverIP);
-  state.addValue("server_port", _config.serverPort);
-  state.addValue("local_port", _config.localPort);
-  state.addValue("ping_timeout", _config.timeOutSeconds);
-  return state;
-}
-
 unsigned long QuickPing::sendRegister()
 {
   QuickPingMessage message = {
@@ -124,7 +171,7 @@ unsigned long QuickPing::sendRegister()
   };
 
   QuickPingState state;
-  state.clear('R');
+  state.reset('R');
   state.addValue("ping_timeout", _config.timeOutSeconds);
   state.addValue("millis", millis());
   for (int i = 0; i < BODY_SIZE; i++)
@@ -202,7 +249,7 @@ void QuickPingState::clear()
   buffer[1] = '!';
 }
 
-void QuickPingState::clear(char _state)
+void QuickPingState::reset(char _state)
 {
   state = _state;
   clear();

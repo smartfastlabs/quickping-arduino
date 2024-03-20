@@ -2,9 +2,11 @@
 
 #include "Arduino.h"
 
-// TODO THERE MUST BE A WAY TO SOLVE THIS!!!!
-// #include <WiFiS3.h>
+#if __has_include(<WiFiS3.h>)
+#include <WiFiS3.h>
+#else
 #include <WiFiNINA.h>
+#endif
 
 const int PACKET_SIZE = 1024;
 const int DEVICE_ID_SIZE = 19;
@@ -35,7 +37,7 @@ class QuickPingState
 public:
   QuickPingState();
   void clear();
-  void clear(char _state);
+  void reset(char _state);
   void addValue(char *key, int value);
   void addValue(char *key, char *value);
   char *getString();
@@ -59,11 +61,14 @@ public:
   unsigned long sendRegister();
   unsigned long lastPing;
   unsigned long lastResponse;
-  QuickPingState getConfigAsBuffer();
 
   void clearState();
   void setState(char *key, int value);
   void setState(char *key, char *value);
+  void printWiFiStatus();
+  int connectToWiFi(char *ssid, char *password);
+  bool checkWiFi();
+  char *getMACAddress();
 
 private:
   QuickPingConfig _config;

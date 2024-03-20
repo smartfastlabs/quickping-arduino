@@ -1,3 +1,9 @@
+// NOTE: This is not perfect, but oh well. It's a start.
+
+#include <WiFiNINA.h>
+// For the Arduino UNO R4 WiFi
+// #include <WiFiS3.h>
+
 #include <quickping.h>
 
 const int BUTTON_PIN = 2;
@@ -15,7 +21,7 @@ void onButtonChange()
 
 void setup()
 {
-    state.clear(69);
+    state.reset(0);
     Serial.begin(115200);
     while (!Serial)
     {
@@ -30,13 +36,10 @@ void setup()
     config.serverPort = 2525;
     config.debug = true;
 
-    unsigned long startTime = millis();
-    Serial.println("[QP] STARTING UP");
     pinMode(BUTTON_PIN, INPUT);
     attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), onButtonChange, CHANGE);
     WiFiServer wifiServer(80);
 
-    // TRY TO READ CONFIG
     Serial.println("[QP] RUNNING");
 
     quickPing.run(&wifiServer, &config);
@@ -46,15 +49,14 @@ void loop()
 {
     if (stateIsDirty)
     {
-        state.clear(digitalRead(BUTTON_PIN));
+        state.reset(digitalRead(BUTTON_PIN));
         state.addValue("button", digitalRead(BUTTON_PIN));
-        state.addValue("button2", !digitalRead(BUTTON_PIN));
         quickPing.sendPing(&state);
         stateIsDirty = false;
     }
     else
     {
-        state.clear(digitalRead(BUTTON_PIN));
+        state.reset(digitalRead(BUTTON_PIN));
         state.addValue("millis", millis());
         QuickPingMessage *message = quickPing.loop(&state);
         free(message);
