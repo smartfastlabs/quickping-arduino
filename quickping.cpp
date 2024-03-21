@@ -132,9 +132,6 @@ unsigned long QuickPing::sendMessage(QuickPingMessage *message)
   ltoa(sentAt, sentAtBuffer, 10);
 
   Udp.begin(_config.localPort);
-
-  Serial.print("[QP] SENDING PING:");
-  Serial.print(_config.serverIP.toString());
   Udp.beginPacket(_config.serverIP, _config.serverPort);
   Udp.write(_config.uuid, UUID_SIZE - 1);
   Udp.write('!');
@@ -142,24 +139,32 @@ unsigned long QuickPing::sendMessage(QuickPingMessage *message)
   Udp.write('!');
   Udp.write(message->action);
   Udp.write('!');
+  Udp.write(message->deviceState);
+  Udp.write('!');
+  if (message->targetDeviceUUID)
+  {
+    Udp.write(message->targetDeviceUUID, UUID_SIZE - 1);
+  }
+  Udp.write('!');
   Udp.write(message->body);
   Udp.write('\0');
   Udp.endPacket();
   return sentAt;
 }
 
-unsigned long QuickPing::sendPing(QuickPingState *state)
+unsigned long QuickPing::sendPing(char state, char *body)
 {
   QuickPingMessage message = {
     action : 'P',
+    deviceState : state,
   };
   for (int i = 0; i < BODY_SIZE; i++)
   {
-    if (state->buffer[i] == '\0')
+    if (body[i] == '\0')
     {
       break;
     }
-    message.body[i] = state->buffer[i];
+    message.body[i] = body[i];
   }
   return sendMessage(&message);
 }
@@ -168,31 +173,23 @@ unsigned long QuickPing::sendRegister()
 {
   QuickPingMessage message = {
     action : 'R',
+    deviceState : 'L',
   };
 
-  QuickPingState state;
-  state.reset('R');
-  state.addValue("ping_timeout", _config.timeOutSeconds);
-  state.addValue("millis", millis());
+  char *msg = "Hey there ;)";
   for (int i = 0; i < BODY_SIZE; i++)
   {
-    if (state.buffer[i] == '\0')
+    if (msg[i] == '\0')
     {
       break;
     }
-    message.body[i] = state.buffer[i];
+    message.body[i] = msg[i];
   }
 
   return sendMessage(&message);
 }
 
-void QuickPing::updateState(QuickPingState *state)
-{
-  unsigned long time = millis();
-  sendPing(state);
-}
-
-QuickPingMessage *QuickPing::loop(QuickPingState *state)
+QuickPingMessage *QuickPing::loop(char state)
 {
   unsigned long time = millis();
   QuickPingMessage *message = readMessage();
@@ -207,17 +204,32 @@ QuickPingMessage *QuickPing::loop(QuickPingState *state)
   }
   else if (time - lastPing > 5000)
   {
-    lastPing = sendPing(state);
+    char *ping = "PING";
+    lastPing = sendPing(state, ping);
   }
 
   return message;
+}
+
+void QuickPing::run()
+{
+
+  WiFiServer wifiServer(80);
+  run(&wifiServer);
+}
+
+void QuickPing::run(QuickPingConfig *config)
+{
+  _config = *config;
+
+  run();
 }
 
 void QuickPing::run(WiFiServer *wifiServer, QuickPingConfig *config)
 {
   _config = *config;
 
-  return run(wifiServer);
+  run(wifiServer);
 }
 
 void QuickPing::run(WiFiServer *wifiServer)
@@ -236,48 +248,5 @@ void QuickPing::run(WiFiServer *wifiServer)
 }
 
 QuickPing::QuickPing()
-{
-}
-
-void QuickPingState::clear()
-{
-  for (int i = 1; i < BODY_SIZE; i++)
-  {
-    buffer[i] = '\0';
-  }
-  buffer[0] = state;
-  buffer[1] = '!';
-}
-
-void QuickPingState::reset(char _state)
-{
-  state = _state;
-  clear();
-}
-
-void QuickPingState::addValue(char *key, int value)
-{
-  strcpy(&buffer[strlen(buffer)], "(i:");
-  strcpy(&buffer[strlen(buffer)], key);
-  strcpy(&buffer[strlen(buffer)], ":");
-  ltoa(value, &buffer[strlen(buffer)], 10);
-  strcpy(&buffer[strlen(buffer)], ")");
-}
-
-void QuickPingState::addValue(char *key, char *value)
-{
-  strcpy(&buffer[strlen(buffer)], "(s:");
-  strcpy(&buffer[strlen(buffer)], key);
-  strcpy(&buffer[strlen(buffer)], ":");
-  strcpy(&buffer[strlen(buffer)], value);
-  strcpy(&buffer[strlen(buffer)], ")");
-}
-
-char *QuickPingState::getString()
-{
-  return buffer;
-}
-
-QuickPingState::QuickPingState()
 {
 }

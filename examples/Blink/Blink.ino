@@ -1,64 +1,47 @@
-// NOTE: This is not perfect, but oh well. It's a start.
+// Uncommnet the next line For the Arduino UNO R4 WiFi
+#include <WiFiS3.h>
 
-#include <WiFiNINA.h>
-// For the Arduino UNO R4 WiFi
-// #include <WiFiS3.h>
+// Uncommnent the next line For most othe boards
+// #include <WiFiNINA.h>
 
 #include <quickping.h>
 
-const int BUTTON_PIN = 2;
-bool stateIsDirty = false;
+bool ledState = true;
 
 QuickPing quickPing;
-QuickPingState state;
-QuickPingConfig config;
-
-void onButtonChange()
-{
-    stateIsDirty = true;
-    digitalWrite(LED_BUILTIN, digitalRead(BUTTON_PIN));
-}
 
 void setup()
 {
-    state.reset(0);
     Serial.begin(115200);
     while (!Serial)
     {
         ;
     }
 
-    config.ssid = "<WIFI_SSID>";
-    config.wifiPassword = "<WIFI_PASSWORD>";
-    config.uuid = "6895285d-02c0-4f96-8702-46520d76cee4";
-    config.localPort = 2525;
-    config.serverIP = IPAddress(192, 168, 86, 48);
-    config.serverPort = 2525;
-    config.debug = true;
+    QuickPingConfig config = {
+        .serverIP = IPAddress(192, 168, 86, 48),
+        .serverPort = 2525,
+        .localPort = 2525,
+        .uuid = "f2e3e3e3-02c0-4f96-8702-46520d76cee4",
+        .ssid = "",
+        .wifiPassword = "",
+        .debug = true};
 
-    pinMode(BUTTON_PIN, INPUT);
-    attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), onButtonChange, CHANGE);
-    WiFiServer wifiServer(80);
+    pinMode(LED_BUILTIN, OUTPUT);
 
     Serial.println("[QP] RUNNING");
 
-    quickPing.run(&wifiServer, &config);
+    quickPing.run(&config);
 }
 
 void loop()
 {
-    if (stateIsDirty)
+    QuickPingMessage *message = quickPing.loop(ledState ? '1' : '0');
+    if (message && message->action == 'C' && message->body[0] == 'T')
     {
-        state.reset(digitalRead(BUTTON_PIN));
-        state.addValue("button", digitalRead(BUTTON_PIN));
-        quickPing.sendPing(&state);
-        stateIsDirty = false;
+        ledState = !ledState;
+        digitalWrite(LED_BUILTIN, ledState);
     }
-    else
-    {
-        state.reset(digitalRead(BUTTON_PIN));
-        state.addValue("millis", millis());
-        QuickPingMessage *message = quickPing.loop(&state);
-        free(message);
-    }
+
+    free(message);
 }

@@ -1,13 +1,15 @@
+// Uncommnet the next line For the Arduino UNO R4 WiFi
 #include <WiFiS3.h>
+
+// Uncommnent the next line For most othe boards
+// #include <WiFiNINA.h>
+
 #include <quickping.h>
-#include <quickping_wifi.h>
-#include <quickping_http.h>
 
 const int BUTTON_PIN = 2;
 bool stateIsDirty = false;
 
 QuickPing quickPing;
-QuickPingState state;
 
 void onButtonChange()
 {
@@ -17,41 +19,50 @@ void onButtonChange()
 
 void setup()
 {
-  state.clear(69);
   Serial.begin(115200);
   while (!Serial)
   {
     ;
   }
 
-  unsigned long startTime = millis();
-  Serial.println("[QP] STARTING UP");
+  QuickPingConfig config = {
+      .serverIP = IPAddress(192, 168, 86, 48),
+      .serverPort = 2525,
+      .localPort = 2525,
+      .uuid = "6895285d-02c0-4f96-8702-46520d76cee4",
+      .ssid = "",
+      .wifiPassword = "",
+      .debug = true};
+
   pinMode(BUTTON_PIN, INPUT);
   attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), onButtonChange, CHANGE);
-  WiFiServer wifiServer(80);
 
-  // TRY TO READ CONFIG
   Serial.println("[QP] RUNNING");
 
-  quickPing.loadConfig(&wifiServer);
-  quickPing.run(&wifiServer);
+  quickPing.run(&config);
 }
+
+char *ON = "{\"state\":\"ON\"}";
+char *OFF = "{\"state\":\"OFF\"}";
 
 void loop()
 {
   if (stateIsDirty)
   {
-    state.clear(digitalRead(BUTTON_PIN));
-    state.addValue("button", digitalRead(BUTTON_PIN));
-    state.addValue("button2", !digitalRead(BUTTON_PIN));
-    quickPing.sendPing(&state);
+    quickPing.sendPing(
+        digitalRead(BUTTON_PIN) ? '1' : '0',
+        digitalRead(BUTTON_PIN) ? ON : OFF);
+
+    QuickPingMessage msg = {
+        .action = 'C',
+        .deviceState = '0',
+        .body = {'T', '\0'},
+        .targetDeviceUUID = "f2e3e3e3-02c0-4f96-8702-46520d76cee4"};
+    quickPing.sendMessage(&msg);
     stateIsDirty = false;
   }
   else
   {
-    state.clear(digitalRead(BUTTON_PIN));
-    state.addValue("millis", millis());
-    QuickPingMessage *message = quickPing.loop(&state);
-    free(message);
+    free(quickPing.loop(digitalRead(BUTTON_PIN) ? '1' : '0'));
   }
 }

@@ -18,11 +18,11 @@ struct QuickPingMessage
   char action;
   char deviceState;
   char body[BODY_SIZE];
+  char *targetDeviceUUID;
 };
 
 struct QuickPingConfig
 {
-  int timeOutSeconds;
   IPAddress serverIP;
   int serverPort;
   int localPort;
@@ -32,32 +32,19 @@ struct QuickPingConfig
   bool debug;
 };
 
-class QuickPingState
-{
-public:
-  QuickPingState();
-  void clear();
-  void reset(char _state);
-  void addValue(char *key, int value);
-  void addValue(char *key, char *value);
-  char *getString();
-
-  char buffer[BODY_SIZE];
-  char state;
-};
-
 class QuickPing
 {
 public:
   QuickPing();
-  void updateState(QuickPingState *state);
-  QuickPingMessage *loop(QuickPingState *state);
+  QuickPingMessage *loop(char state);
   int loopHTTP();
   QuickPingMessage *readMessage();
+  void run();
   void run(WiFiServer *wifiServer);
+  void run(QuickPingConfig *config);
   void run(WiFiServer *wifiServer, QuickPingConfig *config);
   unsigned long sendMessage(QuickPingMessage *message);
-  unsigned long sendPing(QuickPingState *state);
+  unsigned long sendPing(char state, char *body);
   unsigned long sendRegister();
   unsigned long lastPing;
   unsigned long lastResponse;
